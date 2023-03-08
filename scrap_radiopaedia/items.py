@@ -30,18 +30,22 @@ class CaseItem:
     DOI: str
     Permalink: str
     rID: int
-    Disclosures: str
     Case_published: str
-    Disclosures: str
     Revisions: str
-    Systems: list[str]
-    Tags: list[str]
-    Quiz_mode: str
     diagnostic_certainty: str
-    study_id: int
+    studies_ids: list[int]
     presentation_text: str
-    study_stacks_url: str
-    images_ids: list[int] = None
+    Quiz_mode: str = None
+    Tags: list[str] = None
+    Disclosures: str = None
+    Systems: list[str] = None
+
+
+@dataclass
+class StudyItem:
+    id: int
+    stacks_url: str
+    description: str
 
 
 @dataclass
@@ -60,7 +64,7 @@ class ImageStudyItem:
     crop_pending: bool
     image_urls: str
     images = None
-    case_study_id: int = None
+    study_id: int = None
     # show_feature: False,
     # show_pin: False,
     # show_case_key_image: False,

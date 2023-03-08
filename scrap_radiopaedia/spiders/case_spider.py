@@ -1,7 +1,7 @@
-from typing import Any
+from typing import Any, Iterator, Union
 from .utils import extract_header
 import scrapy
-from ..items import CaseItem, ImageStudyItem
+from ..items import CaseItem, ImageStudyItem, StudyItem
 
 # https://radiopaedia.org/studies/27767/stacks
 
@@ -11,33 +11,36 @@ class CaseSpider(scrapy.Spider):
 
     def start_requests(self):
         urls = [
-            'https://radiopaedia.org/cases/scaphoid-fracture-undisplaced',
+            # 'https://radiopaedia.org/cases/scaphoid-fracture-undisplaced',
+            # 'https://radiopaedia.org/cases/scaphoid-fracture-13'
+            'https://radiopaedia.org/cases/trans-scaphoid-perilunate-dislocation'
         ]
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse)
 
     @staticmethod
-    def _extract_images_urls(div_usercontent_node) -> dict:
-        data = {}
-        # images_node = div_usercontent_node.xpath('.//div[@id="case-images"]')
+    def extract_studies(response, div_usercontent_node) -> Iterator[Union[StudyItem, scrapy.http.Request]]:
+        case_study_node = div_usercontent_node.xpath('.//div[contains(@class,"case-section case-study")]')
+        study_ids = [int(study_id) for study_id in case_study_node.xpath('@data-study-id').getall()]
+        study_stacks_urls = case_study_node.xpath('@data-study-stacks-url').getall()
+        assert all(str(x) in y for x, y in zip(study_ids, study_stacks_urls))
+        # Images descriptions/findings
+        img_study_descriptions = div_usercontent_node.xpath(
+            './/div[contains(@class,"study-findings")]/p/text()').getall()
+        img_study_descriptions = [s.rstrip('\xa0') for s in img_study_descriptions]
 
-        data['study_id'] = int(
-            div_usercontent_node.xpath('.//div[contains(@class,"case-section case-study")]/@data-study-id').get()
-        )
-        data['study_stacks_url'] = div_usercontent_node.xpath(
-            './/div[contains(@class,"case-section case-study")]/@data-study-stacks-url').get()
-
-        return data
+        for study_id, stacks_url, desc in zip(study_ids, study_stacks_urls, img_study_descriptions):
+            yield response.follow(stacks_url,
+                                  callback=ImageStudySpider.parse_imagestudy,
+                                  cb_kwargs={'study_id': study_id}
+                                  )
+            yield StudyItem(id=study_id,
+                            stacks_url=stacks_url,
+                            description=desc)
 
     @staticmethod
     def parse_case(response):
         data = {}
-
-        # def cb_func_parse_image(img_response):
-        #     image_items = list(ImageStudySpider.parse_imagestudy(img_response))
-        #     images_ids = [img_i.id for img_i in image_items]
-        #     data['images_ids'] = images_ids
-        #     yield from image_items
 
         ### extract header info ###
         div_main = response.xpath('//div[@id="main"]')
@@ -55,15 +58,17 @@ class CaseSpider(scrapy.Spider):
             './/div[@id="case-patient-presentation"]/p/text()').get()
         ######################################
 
-        data.update(CaseSpider._extract_images_urls(div_usercontent_node))
+        studies_ids = []
+        for item in CaseSpider.extract_studies(response, div_usercontent_node):
+            if isinstance(item, StudyItem):
+                studies_ids.append(item.id)
+            yield item
+
         data.update(header_data)
 
-        yield response.follow(data['study_stacks_url'],
-                              callback=ImageStudySpider.parse_imagestudy,
-                              cb_kwargs={'case_study_id': data['study_id']}
-                              )
+        # TODO: scrap age and gender
 
-        yield CaseItem(**data)
+        yield CaseItem(studies_ids=studies_ids, **data)
 
     def parse(self, response):
         yield from CaseSpider.parse_case(response)
@@ -75,13 +80,13 @@ class ImageStudySpider(scrapy.Spider):
     start_urls = ['https://radiopaedia.org/studies/27767/stacks']
 
     @staticmethod
-    def parse_imagestudy(response, case_study_id: int = None):
+    def parse_imagestudy(response, study_id: int = None):
         for img_study in response.json():
             modality = img_study['modality']
             for imgobj in img_study['images']:
                 imgobj['image_urls'] = [imgobj['public_filename']]
-                if case_study_id is not None:
-                    imgobj['case_study_id'] = case_study_id
+                if study_id is not None:
+                    imgobj['study_id'] = study_id
 
                 imgobj = {k: v for k, v in imgobj.items() if k in ImageStudyItem.__annotations__.keys()}
 

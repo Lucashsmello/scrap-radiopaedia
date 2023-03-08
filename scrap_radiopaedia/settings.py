@@ -7,7 +7,7 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-from .items import ImageStudyItem, CaseItem, ArticleItem
+from .items import ImageStudyItem, CaseItem, ArticleItem, StudyItem
 
 BOT_NAME = "scrap_radiopaedia"
 
@@ -73,7 +73,7 @@ ITEM_PIPELINES = {
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
 AUTOTHROTTLE_ENABLED = True
 # The initial download delay
-#AUTOTHROTTLE_START_DELAY = 5
+AUTOTHROTTLE_START_DELAY = 3
 # The maximum download delay to be set in case of high latencies
 #AUTOTHROTTLE_MAX_DELAY = 60
 # The average number of requests Scrapy should be sending in parallel to
@@ -95,17 +95,25 @@ IMAGES_STORE = 'extracted_dataset/images/'
 
 
 # https://docs.scrapy.org/en/latest/topics/feed-exports.html#topics-feed-exports
+FEEDS_overwrite_option = True
 FEEDS = {
     'extracted_dataset/cases.csv': {
         'format': 'csv',
-        'item_classes': [CaseItem]
+        'item_classes': [CaseItem],
+        'overwrite': FEEDS_overwrite_option
     },
     'extracted_dataset/images_info.csv': {
         'format': 'csv',
-        'item_classes': [ImageStudyItem]
+        'item_classes': [ImageStudyItem],
+        'overwrite': FEEDS_overwrite_option
+    },
+    'extracted_dataset/studies.csv': {
+        'format': 'csv',
+        'item_classes': [StudyItem],
+        'overwrite': FEEDS_overwrite_option
     }
-
 }
+
 
 LOG_LEVEL = 'INFO'
 

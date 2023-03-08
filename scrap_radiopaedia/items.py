@@ -21,11 +21,13 @@ class ArticleItem:
     Systems: list[str]
     Tags: list[str]
     Synonyms: list[str]
+    case_ids: list[int]
 
 
 @dataclass
 class CaseItem:
     header_title: str
+    url: str
     Citation: str
     DOI: str
     Permalink: str

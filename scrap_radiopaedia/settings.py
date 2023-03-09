@@ -20,7 +20,7 @@ CONCURRENT_REQUESTS = 8
 # Configure a delay for requests for the same website (default: 0)
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-DOWNLOAD_DELAY = 0.1
+DOWNLOAD_DELAY = 2
 # The download delay setting will honor only one of:
 CONCURRENT_REQUESTS_PER_DOMAIN = 8
 #CONCURRENT_REQUESTS_PER_IP = 16
@@ -44,19 +44,19 @@ ITEM_PIPELINES = {
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
 AUTOTHROTTLE_ENABLED = True
 # The initial download delay
-AUTOTHROTTLE_START_DELAY = 1
+AUTOTHROTTLE_START_DELAY = 3
 # The maximum download delay to be set in case of high latencies
 #AUTOTHROTTLE_MAX_DELAY = 60
 # The average number of requests Scrapy should be sending in parallel to
 # each remote server
-AUTOTHROTTLE_TARGET_CONCURRENCY = 8.0
+AUTOTHROTTLE_TARGET_CONCURRENCY = 2.0
 # Enable showing throttling stats for every response received:
-AUTOTHROTTLE_DEBUG = False
+AUTOTHROTTLE_DEBUG = True
 
 # Enable and configure HTTP caching (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
 HTTPCACHE_ENABLED = True
-HTTPCACHE_EXPIRATION_SECS = 600
+HTTPCACHE_EXPIRATION_SECS = 60
 #HTTPCACHE_DIR = "httpcache"
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
@@ -96,7 +96,7 @@ FEED_EXPORT_ENCODING = "utf-8"
 
 ### Custom Settings ###
 
-# Max cases pages to follow. None means no limit. 1 means that only a single page of cases will be scrapped.
+# Max cases pages to follow. 1 means that only a single page of cases will be scrapped.
 CASESPIDER_MAXPAGES = 2
 
 # Filter Cases with desired tags (case-insensitive). Multiple values means to include any case that has at least one of these value.
@@ -105,6 +105,8 @@ CASE_INCLUDE_TAGS = ['fracture']
 CASE_INCLUDE_NA_TAGS = True
 
 # Filter Cases with desired systems (case-insensitive).
-CASE_INCLUDE_SYSTEMS = ['musculoskeletal']
+CASE_INCLUDE_SYSTEMS = ['nonenone']
 # Set True to include Cases where there are no systems are available.
 CASE_INCLUDE_NA_SYSTEMS = True
+
+CASE_PUBLISHED_MIN_DATE = '2023-01-01'

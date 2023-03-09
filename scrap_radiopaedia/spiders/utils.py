@@ -22,9 +22,9 @@ def extract_header(node) -> dict[str, Any]:
         header_tags_node = node.xpath('.//a[starts-with(@href,"/tags/")]')
         header_tags_hrefs_values = header_tags_node.xpath('@href').re(r'/tags/([^\?]*)')
         header_tags_texts_values = header_tags_node.xpath('text()').getall()
-        assert all(v1 == v2.replace(' ', '-')
-                   for v1, v2 in zip(header_tags_hrefs_values, header_tags_texts_values)), f"{header_tags_hrefs_values}!={header_tags_texts_values}"
-        data['Tags'] = header_tags_texts_values
+        # assert all(v1 == v2.replace(' ', '-')
+        #            for v1, v2 in zip(header_tags_hrefs_values, header_tags_texts_values)), f"{header_tags_hrefs_values}!={header_tags_texts_values}"
+        data['Tags'] = header_tags_hrefs_values
     #################
 
     ### Systems: ###

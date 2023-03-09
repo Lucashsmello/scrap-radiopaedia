@@ -13,11 +13,6 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 
-class ScrapRadiopaediaPipeline:
-    def process_item(self, item, spider):
-        return item
-
-
 class MyImagesPipeline(ImagesPipeline):
     def file_path(self, request, response=None, info=None, *, item: ImageStudyItem = None):
         study_id = int(request.url.split('/')[-2])

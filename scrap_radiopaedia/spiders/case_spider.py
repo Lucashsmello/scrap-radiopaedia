@@ -1,4 +1,4 @@
-from typing import Any, Iterator, Union
+from typing import Any, Iterator, Union, Optional, Sequence
 from .utils import extract_header
 import scrapy
 from scrapy import http
@@ -41,13 +41,40 @@ class CaseSpider(scrapy.Spider):
                             description=desc)
 
     @staticmethod
-    def parse_case(response):
+    def _filter_by_field(values_str: Optional[Sequence[str]],
+                         include_values: Optional[Sequence[str]],
+                         include_na: bool) -> bool:
+        if values_str is None:
+            return include_na == True
+
+        if include_values is not None:
+            tags = [t.strip().lower() for t in values_str]
+            in_tags = [itag.lower() in tags for itag in include_values]
+            if sum(in_tags) == 0:
+                return False
+        return True
+
+    @staticmethod
+    def parse_case(response,
+                   include_tags: Optional[Sequence[str]] = None,
+                   include_na_tags: bool = False,
+                   include_systems: Optional[str] = None,
+                   include_na_systems: bool = False):
         data = {}
 
         ### extract header info ###
         div_main = response.xpath('//div[@id="main"]')
         header_node = div_main.xpath('.//div[@id="content-header"]')
         header_data = extract_header(header_node)
+
+        if 'Tags' in header_data:
+            if not CaseSpider._filter_by_field(header_data['Tags'], include_tags, include_na_tags):
+                return
+
+        if 'Systems' in header_data:
+            if not CaseSpider._filter_by_field(header_data['Systems'], include_systems, include_na_systems):
+                return
+
         header_data['header_title'] = header_node.xpath('h1[@class="header-title"]/text()').get()
         diagnostic_certainty = header_node.xpath(
             './/span[@class="diagnostic-certainty-title"]/text()[normalize-space()]').get()
@@ -80,6 +107,16 @@ class CaseSpider(scrapy.Spider):
 
     def parse(self, response: http.Request):
         url = response.url
+        cb_kwargs = {'include_systems': self.settings.getlist('CASE_INCLUDE_SYSTEMS'),
+                     'include_tags': self.settings.getlist('CASE_INCLUDE_TAGS')
+                     }
+        cb_kwargs.update({'include_na_systems': self.settings.getbool('CASE_INCLUDE_NA_SYSTEMS',
+                                                                      cb_kwargs['include_systems'] is None),
+                          'include_na_tags': self.settings.getbool('CASE_INCLUDE_NA_TAGS',
+                                                                   cb_kwargs['include_tags'] is None)
+                          }
+                         )
+        # cb_kwargs = {self.settings.getbool('CASE_INCLUDE_NA_SYSTEMS', True)}
 
         # Cases page
         if url.endswith('/cases') or url.endswith('/cases/') or '/cases?' in url:
@@ -87,14 +124,15 @@ class CaseSpider(scrapy.Spider):
 
             for page_href in cases_hrefs:
                 yield response.follow(page_href,
-                                      callback=CaseSpider.parse_case
+                                      callback=CaseSpider.parse_case,
+                                      cb_kwargs=cb_kwargs
                                       )
 
             next_page_href = response.xpath('//div[@role="navigation"]//a[@class="next_page"]/@href').get()
             if next_page_href is not None:
                 yield response.follow(next_page_href, callback=self.parse)
         else:
-            yield from CaseSpider.parse_case(response)
+            yield from CaseSpider.parse_case(response, **cb_kwargs)
 
 
 class ImageStudySpider(scrapy.Spider):

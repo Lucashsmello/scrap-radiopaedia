@@ -37,6 +37,7 @@ class CaseItem:
     diagnostic_certainty: str
     studies_ids: list[int]
     presentation_text: str
+    Institution: str = None
     Quiz_mode: str = None
     Tags: list[str] = None
     Disclosures: str = None

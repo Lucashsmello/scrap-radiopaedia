@@ -49,8 +49,11 @@ class CaseSpider(scrapy.Spider):
         header_node = div_main.xpath('.//div[@id="content-header"]')
         header_data = extract_header(header_node)
         header_data['header_title'] = header_node.xpath('h1[@class="header-title"]/text()').get()
-        header_data['diagnostic_certainty'] = header_node.xpath(
-            './/span[@class="diagnostic-certainty-title"]/text()[normalize-space()]').get().rstrip('\xa0')
+        diagnostic_certainty = header_node.xpath(
+            './/span[@class="diagnostic-certainty-title"]/text()[normalize-space()]').get()
+        if diagnostic_certainty is not None:
+            diagnostic_certainty = diagnostic_certainty.rstrip('\xa0')
+            header_data['diagnostic_certainty'] = diagnostic_certainty
         ###########################
 
         div_usercontent_node = div_main.xpath('//div[@class="user-generated-content"]')
@@ -79,7 +82,7 @@ class CaseSpider(scrapy.Spider):
         url = response.url
 
         # Cases page
-        if url.endswith('/cases') or url.endswith('/cases/') or '/cases?page=' in url:
+        if url.endswith('/cases') or url.endswith('/cases/') or '/cases?' in url:
             cases_hrefs = response.xpath('//a[@class="search-result search-result-case"]/@href').getall()
 
             for page_href in cases_hrefs:
@@ -90,8 +93,8 @@ class CaseSpider(scrapy.Spider):
             next_page_href = response.xpath('//div[@role="navigation"]//a[@class="next_page"]/@href').get()
             if next_page_href is not None:
                 yield response.follow(next_page_href, callback=self.parse)
-
-        yield from CaseSpider.parse_case(response)
+        else:
+            yield from CaseSpider.parse_case(response)
 
 
 class ImageStudySpider(scrapy.Spider):

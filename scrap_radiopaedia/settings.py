@@ -46,12 +46,15 @@ AUTOTHROTTLE_ENABLED = True
 # The initial download delay
 AUTOTHROTTLE_START_DELAY = 3
 # The maximum download delay to be set in case of high latencies
-#AUTOTHROTTLE_MAX_DELAY = 60
+AUTOTHROTTLE_MAX_DELAY = 45
 # The average number of requests Scrapy should be sending in parallel to
 # each remote server
 AUTOTHROTTLE_TARGET_CONCURRENCY = 2.0
 # Enable showing throttling stats for every response received:
 AUTOTHROTTLE_DEBUG = True
+
+RETRY_ENABLED = True
+RETRY_TIMES = 5
 
 # Enable and configure HTTP caching (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
@@ -96,17 +99,22 @@ FEED_EXPORT_ENCODING = "utf-8"
 
 ### Custom Settings ###
 
-# Max cases pages to follow. 1 means that only a single page of cases will be scrapped.
-CASESPIDER_MAXPAGES = 2
+# Max cases pages to follow per provided url. 1 means that only a single page of cases will be scrapped.
+CASESPIDER_MAXPAGES = 0
+
+# Filter cases that has at least an image of that modality
+CASESPIDER_PAGES_FILTER_MODALITY = 'X-ray'  # Case sensitive
+
+IMAGE_MODALITIES = ['X-ray']
 
 # Filter Cases with desired tags (case-insensitive). Multiple values means to include any case that has at least one of these value.
-CASE_INCLUDE_TAGS = ['fracture']
+#CASE_INCLUDE_TAGS = ['wrist']
 # Set True to include Cases where there are no tags are available.
 CASE_INCLUDE_NA_TAGS = True
 
 # Filter Cases with desired systems (case-insensitive).
-CASE_INCLUDE_SYSTEMS = ['nonenone']
+#CASE_INCLUDE_SYSTEMS = ['musculoskeletal']
 # Set True to include Cases where there are no systems are available.
 CASE_INCLUDE_NA_SYSTEMS = True
 
-CASE_PUBLISHED_MIN_DATE = '2023-01-01'
+#CASE_PUBLISHED_MIN_DATE = '2023-01-01'

@@ -34,14 +34,17 @@ class CaseItem:
     rID: int
     Case_published: str
     Revisions: str
-    diagnostic_certainty: str
     studies_ids: list[int]
     presentation_text: str
+    Age: str = None
+    Gender: str = None
+    diagnostic_certainty: str = None
     Institution: str = None
     Quiz_mode: str = None
     Tags: list[str] = None
     Disclosures: str = None
     Systems: list[str] = None
+    Case_of_the_day: str = None
 
 
 @dataclass
@@ -49,6 +52,7 @@ class StudyItem:
     id: int
     stacks_url: str
     description: str
+    modality: str
 
 
 @dataclass

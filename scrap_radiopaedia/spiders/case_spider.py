@@ -209,15 +209,15 @@ class CaseSpider(scrapy.Spider):
                                       )
             self.max_pages_to_read -= 1
 
-            next_page_href = response.xpath('//div[@role="navigation"]//a[@class="next_page"]/@href').get()
-            if next_page_href is not None:
-                if self.max_pages_to_read > 0:
+            if self.max_pages_to_read > 0:
+                next_page_href = response.xpath('//div[@role="navigation"]//a[@class="next_page"]/@href').get()
+                if next_page_href is not None:
                     self.logger.info(f'Remaining Cases pages to read: {self.max_pages_to_read}')
                     self.logger.info(f'Following next Cases page ({next_page_href})')
                     yield response.follow(next_page_href, callback=self.parse)
                     self.max_pages_to_read -= 1
-                else:
-                    self.logger.info('Reached max number of Cases pages to read.')
+            else:
+                self.logger.info('Reached max number of Cases pages to read.')
         else:
             yield from CaseSpider.parse_case(response, **cb_kwargs)
 

@@ -17,13 +17,11 @@ class CaseSpider(scrapy.Spider):
     def start_requests(self):
         # urls = [
         #     # 'https://radiopaedia.org/cases/scaphoid-fracture-undisplaced',
-        #     # 'https://radiopaedia.org/cases/scaphoid-fracture-13'
-        #     # 'https://radiopaedia.org/cases/trans-scaphoid-perilunate-dislocation'
         #     'https://radiopaedia.org/cases'
         # ]
         # for url in urls:
         #     yield scrapy.Request(url=url, callback=self.parse)
-        for i in range(157, 155, -1):
+        for i in range(157, 127, -1):
             filter_modality = self.settings.get('CASESPIDER_PAGES_FILTER_MODALITY')
             if filter_modality is None:
                 url = f'https://radiopaedia.org/cases?page={i}'
@@ -40,12 +38,13 @@ class CaseSpider(scrapy.Spider):
         study_stacks_urls = case_study_node.xpath('@data-study-stacks-url').getall()
         assert all(str(x) in y for x, y in zip(study_ids, study_stacks_urls))
         # Images descriptions/findings
-        study_findings_node = div_usercontent_node.xpath('.//div[contains(@class,"study-findings")]')
-        img_study_descriptions = [''.join(x.xpath('.//text()').getall()).replace('\xa0', ' ')
-                                  for x in study_findings_node]
+        img_study_descriptions = [study.xpath('.//div[contains(@class,"study-findings")]//text()').getall()
+                                  for study in case_study_node]
+        img_study_descriptions = [''.join(desc).replace('\xa0', ' ')
+                                  for desc in img_study_descriptions]
 
         # Study modality
-        studies_modality = div_usercontent_node.xpath('.//div[@class="study-modality"]/span/text()').getall()
+        studies_modality = [x.xpath('.//div[@class="study-modality"]/span/text()').get() for x in case_study_node]
 
         assert len(studies_modality) == len(img_study_descriptions) and len(study_ids) == len(studies_modality),\
             f'studies_modality={studies_modality} | img_study_descriptions={img_study_descriptions} | study_ids={study_ids}'

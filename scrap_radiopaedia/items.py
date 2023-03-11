@@ -38,6 +38,7 @@ class CaseItem:
     presentation_text: str
     Age: str = None
     Gender: str = None
+    Race: str = None
     diagnostic_certainty: str = None
     Institution: str = None
     Quiz_mode: str = None
@@ -51,8 +52,8 @@ class CaseItem:
 class StudyItem:
     id: int
     stacks_url: str
-    description: str
-    modality: str
+    description: str = None
+    modality: str = None
 
 
 @dataclass

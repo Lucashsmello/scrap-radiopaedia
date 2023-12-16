@@ -5,6 +5,7 @@ from scrapy import http
 from ..items import CaseItem, ImageStudyItem, StudyItem
 from datetime import date, datetime
 import logging
+import json
 
 # https://radiopaedia.org/studies/27767/stacks
 
@@ -15,18 +16,13 @@ class CaseSpider(scrapy.Spider):
     name = "case"
 
     def start_requests(self):
-        # urls = [
-        #     # 'https://radiopaedia.org/cases/scaphoid-fracture-undisplaced',
-        #     'https://radiopaedia.org/cases'
-        # ]
-        # for url in urls:
-        #     yield scrapy.Request(url=url, callback=self.parse)
-        for i in range(157, 127, -1):
+        maxpages = self.settings.get('CASESPIDER_MAXPAGES', 1)
+        for i in range(1, maxpages+1):
             filter_modality = self.settings.get('CASESPIDER_PAGES_FILTER_MODALITY')
             if filter_modality is None:
-                url = f'https://radiopaedia.org/cases?page={i}'
+                url = f'https://radiopaedia.org/search?lang=us&page={i}&scope=cases&sort=date_of_publication'
             else:
-                url = f'https://radiopaedia.org/cases?modality={filter_modality}&page={i}'
+                url = f'https://radiopaedia.org/search?lang=us&modality={filter_modality}&page={i}&scope=cases&sort=date_of_publication'
             yield scrapy.Request(url=url, callback=self.parse)
 
     @staticmethod
@@ -34,8 +30,13 @@ class CaseSpider(scrapy.Spider):
                         div_usercontent_node,
                         filter_img_modalities: Sequence[str] = None) -> Iterator[Union[StudyItem, http.Request]]:
         case_study_node = div_usercontent_node.xpath('.//div[contains(@class,"case-section case-study")]')
-        study_ids = [int(study_id) for study_id in case_study_node.xpath('@data-study-id').getall()]
-        study_stacks_urls = case_study_node.xpath('@data-study-stacks-url').getall()
+        # study_ids = [int(study_id) for study_id in case_study_node.xpath('@data-study-id').getall()]
+        study_ids = [int(study_id.split('-')[-1])
+                     for study_id in case_study_node.xpath('./div[@class="main-study-desc"]/@id').getall()]
+        
+        study_stacks_urls = [f'https://radiopaedia.org/studies/{study_id}/stacks' for study_id in study_ids]
+        
+
         assert all(str(x) in y for x, y in zip(study_ids, study_stacks_urls))
         # Images descriptions/findings
         img_study_descriptions = [study.xpath('.//div[contains(@class,"study-findings")]//text()').getall()
@@ -46,7 +47,7 @@ class CaseSpider(scrapy.Spider):
         # Study modality
         studies_modality = [x.xpath('.//div[@class="study-modality"]/span/text()').get() for x in case_study_node]
 
-        assert len(studies_modality) == len(img_study_descriptions) and len(study_ids) == len(studies_modality),\
+        assert len(studies_modality) == len(img_study_descriptions) and len(study_ids) == len(studies_modality), \
             f'studies_modality={studies_modality} | img_study_descriptions={img_study_descriptions} | study_ids={study_ids}'
 
         for study_id, stacks_url, desc, modality in zip(study_ids, study_stacks_urls, img_study_descriptions, studies_modality):
@@ -55,10 +56,35 @@ class CaseSpider(scrapy.Spider):
                                   cb_kwargs={'study_id': study_id,
                                              'filter_modalities': filter_img_modalities}
                                   )
+
             yield StudyItem(id=study_id,
                             stacks_url=stacks_url,
                             description=desc,
                             modality=modality)
+
+    # @staticmethod
+    # def extract_studies(response,
+    #                     div_usercontent_node,
+    #                     filter_img_modalities: Sequence[str] = None) -> Iterator[Union[StudyItem, http.Request]]:
+    #     case_study_node = div_usercontent_node.xpath('.//div[contains(@class,"case-section case-study")]')
+    #     # study_ids = [int(study_id) for study_id in case_study_node.xpath('@data-study-id').getall()]
+    #     study_ids = [int(study_id.split('-')[-1])
+    #                  for study_id in case_study_node.xpath('./div[@class="main-study-desc"]/@id').getall()]
+    #     # Images descriptions/findings
+    #     img_study_descriptions = [study.xpath('.//div[contains(@class,"study-findings")]//text()').getall()
+    #                               for study in case_study_node]
+    #     img_study_descriptions = [''.join(desc).replace('\xa0', ' ')
+    #                               for desc in img_study_descriptions]
+
+    #     study_datas = [json.loads(data)['study'] for data in case_study_node.xpath('.//div[@class="hidden data"]/text()').getall()]
+
+    #     for study in study_datas:
+    #         ImageStudySpider.parse_imagestudy(study, filter_img_modalities=filter_img_modalities)
+
+    #         yield StudyItem(id=study_id,
+    #                         stacks_url=stacks_url,
+    #                         description=desc,
+    #                         modality=modality)
 
     @staticmethod
     def _filter_by_field(values_str: Optional[Sequence[str]],
@@ -182,7 +208,7 @@ class CaseSpider(scrapy.Spider):
             cb_kwargs['min_case_date'] = min_date
         max_date = self.settings.get('CASE_PUBLISHED_MAX_DATE')
         if max_date is not None:
-            min_date = datetime.strptime(max_date, '%Y-%m-%d').date()
+            max_date = datetime.strptime(max_date, '%Y-%m-%d').date()
             cb_kwargs['max_case_date'] = max_date
 
         cb_kwargs['filter_img_modalities'] = self.settings.get('IMAGE_MODALITIES')
@@ -190,36 +216,18 @@ class CaseSpider(scrapy.Spider):
         return cb_kwargs
 
     def parse(self, response: http.Request):
-        url = response.url
-
         cb_kwargs = self._get_parse_case_settings()
 
         # Cases page
-        if url.endswith('/cases') or url.endswith('/cases/') or '/cases?' in url:
-            if not hasattr(self, 'max_pages_to_read'):
-                self.max_pages_to_read = self.settings.getint('CASESPIDER_MAXPAGES', 10000)
-            cases_hrefs = response.xpath('//a[@class="search-result search-result-case"]/@href').getall()
-            self.logger.info(f'Found {len(cases_hrefs)} Cases in this page.')
+        cases_hrefs = response.xpath('//a[@class="search-result search-result-case"]/@href').getall()
+        self.logger.info(f'Found {len(cases_hrefs)} Cases in this page.')
 
-            for page_href in cases_hrefs:
-                self.logger.info(f'Following Case {page_href}...')
-                yield response.follow(page_href,
-                                      callback=CaseSpider.parse_case,
-                                      cb_kwargs=cb_kwargs
-                                      )
-            self.max_pages_to_read -= 1
-
-            if self.max_pages_to_read > 0:
-                next_page_href = response.xpath('//div[@role="navigation"]//a[@class="next_page"]/@href').get()
-                if next_page_href is not None:
-                    self.logger.info(f'Remaining Cases pages to read: {self.max_pages_to_read}')
-                    self.logger.info(f'Following next Cases page ({next_page_href})')
-                    yield response.follow(next_page_href, callback=self.parse)
-                    self.max_pages_to_read -= 1
-            else:
-                self.logger.info('Reached max number of Cases pages to read.')
-        else:
-            yield from CaseSpider.parse_case(response, **cb_kwargs)
+        for page_href in cases_hrefs:
+            self.logger.info(f'Following Case {page_href}...')
+            yield response.follow(page_href,
+                                  callback=CaseSpider.parse_case,
+                                  cb_kwargs=cb_kwargs
+                                  )
 
 
 class ImageStudySpider(scrapy.Spider):
@@ -227,13 +235,29 @@ class ImageStudySpider(scrapy.Spider):
 
     start_urls = ['https://radiopaedia.org/studies/27767/stacks']
 
+    # @staticmethod
+    # def parse_imagestudy(study:dict,
+    #                      filter_modalities: Sequence[str] = None):
+    #     modality = study['modality']
+    #     if filter_modalities is not None and modality.lower() not in filter_modalities:
+    #         return
+    #     for imgobj in study['series']:
+    #         imgdata = {'modality': modality,
+    #                    'id': imgobj['id'],
+    #                    'fullscreen_filename': None,
+    #                    'public_filename': None,
+    #                    'plane_projection':imgobj['perspective'],
+    #                    'aux_modality': None,
+
+    #                    }
+
     @staticmethod
     def parse_imagestudy(response,
                          study_id: int = None,
                          filter_modalities: Sequence[str] = None):
         for img_study in response.json():
             modality = img_study['modality']
-            if filter_modalities is not None and modality not in filter_modalities:
+            if filter_modalities is not None and modality.lower() not in filter_modalities:
                 continue
             for imgobj in img_study['images']:
                 imgobj['image_urls'] = [imgobj['public_filename']]

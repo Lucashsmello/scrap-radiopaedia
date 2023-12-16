@@ -9,7 +9,7 @@ NEWSPIDER_MODULE = "scrap_radiopaedia.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "scrap_radiopaedia (+http://www.yourdomain.com)"
+# USER_AGENT = "scrap_radiopaedia (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -23,10 +23,10 @@ CONCURRENT_REQUESTS = 8
 DOWNLOAD_DELAY = 2
 # The download delay setting will honor only one of:
 CONCURRENT_REQUESTS_PER_DOMAIN = 8
-#CONCURRENT_REQUESTS_PER_IP = 16
+# CONCURRENT_REQUESTS_PER_IP = 16
 
 # Disable Telnet Console (enabled by default)
-#TELNETCONSOLE_ENABLED = False
+# TELNETCONSOLE_ENABLED = False
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
@@ -60,35 +60,13 @@ RETRY_TIMES = 5
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
 HTTPCACHE_ENABLED = True
 HTTPCACHE_EXPIRATION_SECS = 60
-#HTTPCACHE_DIR = "httpcache"
-#HTTPCACHE_IGNORE_HTTP_CODES = []
-#HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
+# HTTPCACHE_DIR = "httpcache"
+# HTTPCACHE_IGNORE_HTTP_CODES = []
+# HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
 
-IMAGES_STORE = 'extracted_dataset/images/'
-
-
-# https://docs.scrapy.org/en/latest/topics/feed-exports.html#topics-feed-exports
-FEEDS_overwrite_option = True
-FEEDS = {
-    'extracted_dataset/cases.csv': {
-        'format': 'csv',
-        'item_classes': [CaseItem],
-        'overwrite': FEEDS_overwrite_option
-    },
-    'extracted_dataset/images_info.csv': {
-        'format': 'csv',
-        'item_classes': [ImageStudyItem],
-        'overwrite': FEEDS_overwrite_option
-    },
-    'extracted_dataset/studies.csv': {
-        'format': 'csv',
-        'item_classes': [StudyItem],
-        'overwrite': FEEDS_overwrite_option
-    }
-}
 
 # Logging
-LOG_LEVEL = 'INFO'
+LOG_LEVEL = 'DEBUG'
 # LOG_FILE = 'log.log'
 
 # Set settings whose default value is deprecated to a future-proof value
@@ -100,21 +78,48 @@ FEED_EXPORT_ENCODING = "utf-8"
 ### Custom Settings ###
 
 # Max cases pages to follow per provided url. 1 means that only a single page of cases will be scrapped.
-CASESPIDER_MAXPAGES = 0
+CASESPIDER_MAXPAGES = 250
 
 # Filter cases that has at least an image of that modality
 CASESPIDER_PAGES_FILTER_MODALITY = 'X-ray'  # Case sensitive
 
-IMAGE_MODALITIES = ['X-ray']
+IMAGE_MODALITIES = ['x-ray']  # all lowercase
 
 # Filter Cases with desired tags (case-insensitive). Multiple values means to include any case that has at least one of these value.
-#CASE_INCLUDE_TAGS = ['wrist']
+# CASE_INCLUDE_TAGS = ['wrist']
 # Set True to include Cases where there are no tags are available.
 CASE_INCLUDE_NA_TAGS = True
 
 # Filter Cases with desired systems (case-insensitive).
-#CASE_INCLUDE_SYSTEMS = ['musculoskeletal']
+# CASE_INCLUDE_SYSTEMS = ['musculoskeletal']
 # Set True to include Cases where there are no systems are available.
 CASE_INCLUDE_NA_SYSTEMS = True
 
-#CASE_PUBLISHED_MIN_DATE = '2023-01-01'
+CASE_PUBLISHED_MIN_DATE = '2023-03-12'
+CASE_PUBLISHED_MAX_DATE = '2023-12-13'
+
+if CASE_PUBLISHED_MIN_DATE is None or CASE_PUBLISHED_MAX_DATE is None:
+    DATASET_DIR_OUT = 'extracted_dataset'
+else:
+    DATASET_DIR_OUT = f'extracted_dataset_{CASE_PUBLISHED_MIN_DATE}_{CASE_PUBLISHED_MAX_DATE}'
+IMAGES_STORE = f'{DATASET_DIR_OUT}/images/'
+
+# https://docs.scrapy.org/en/latest/topics/feed-exports.html#topics-feed-exports
+FEEDS_overwrite_option = True
+FEEDS = {
+    f'{DATASET_DIR_OUT}/cases.csv': {
+        'format': 'csv',
+        'item_classes': [CaseItem],
+        'overwrite': FEEDS_overwrite_option
+    },
+    f'{DATASET_DIR_OUT}/images_info.csv': {
+        'format': 'csv',
+        'item_classes': [ImageStudyItem],
+        'overwrite': FEEDS_overwrite_option
+    },
+    f'{DATASET_DIR_OUT}/studies.csv': {
+        'format': 'csv',
+        'item_classes': [StudyItem],
+        'overwrite': FEEDS_overwrite_option
+    }
+}

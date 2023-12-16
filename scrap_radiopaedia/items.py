@@ -3,7 +3,6 @@
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/items.html
 
-import scrapy
 from dataclasses import dataclass
 from typing import Optional
 
@@ -70,7 +69,7 @@ class ImageStudyItem:
     height: int
     download_image_url: str
     crop_pending: bool
-    image_urls: str
+    image_urls: list[str]
     images = None
     study_id: int = None
     # show_feature: False,
